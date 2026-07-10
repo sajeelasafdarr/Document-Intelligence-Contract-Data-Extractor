@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Document Upload — Sage AI</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:           #0f0f0f;
+    --surface:      #1a1a1a;
+    --surface-2:    #222222;
+    --border:       #2a2a2a;
+    --border-focus: #7c3aed;
+    --text:         #f0f0f0;
+    --muted:        #888;
+    --accent:       #7c3aed;
+    --accent-hover: #6d28d9;
+    --error:        #ef4444;
+    --success:      #10b981;
+    --radius:       8px;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 15px;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 2.5rem 2rem;
+    width: 100%;
+    max-width: 520px;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 2rem;
+  }
+
+  .logo-icon {
+    width: 36px;
+    height: 36px;
+    background: var(--accent);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+  }
+
+  .logo-text {
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+
+  .logo-text span { color: var(--accent); }
+
+  h1 {
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    margin-bottom: 6px;
+  }
+
+  .subtitle {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 2rem;
+    line-height: 1.5;
+  }
+
+  .field { margin-bottom: 1.25rem; }
+
+  label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: #ccc;
+    margin-bottom: 6px;
+  }
+
+  label .req { color: var(--accent); margin-left: 2px; }
+
+  input[type="text"],
+  input[type="email"],
+  select {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 14px;
+    padding: 10px 14px;
+    outline: none;
+    transition: border-color 0.15s;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+
+  input[type="text"]:focus,
+  input[type="email"]:focus,
+  select:focus { border-color: var(--border-focus); }
+
+  input::placeholder { color: #444; }
+
+  select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23888' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 36px;
+    cursor: pointer;
+  }
+
+  select option { background: #1a1a1a; color: #f0f0f0; }
+
+  /* PDF Upload Drop Zone */
+  .upload-zone {
+    border: 1.5px dashed var(--border-focus);
+    border-radius: var(--radius);
+    background: var(--bg);
+    padding: 2rem 1rem;
+    text-align: center;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    position: relative;
+  }
+
+  .upload-zone:hover { background: #1a1a1a; }
+  .upload-zone.drag-over { background: #1a0d2e; border-color: #a855f7; }
+  .upload-zone.has-file { border-style: solid; border-color: var(--success); }
+
+  .upload-zone input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+  }
+
+  .upload-icon {
+    font-size: 32px;
+    margin-bottom: 8px;
+    display: block;
+  }
+
+  .upload-text {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  .upload-text strong { color: var(--accent); font-weight: 500; }
+
+  .file-info {
+    display: none;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface-2);
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    margin-top: 10px;
+  }
+
+  .file-info.visible { display: flex; }
+
+  .file-icon {
+    width: 32px;
+    height: 32px;
+    background: rgba(16,185,129,0.15);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+
+  .file-details { flex: 1; min-width: 0; }
+  .file-name { font-size: 13px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .file-size { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  .remove-file {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 18px;
+    padding: 0 4px;
+    line-height: 1;
+  }
+
+  .remove-file:hover { color: var(--error); }
+
+  .field-error {
+    font-size: 12px;
+    color: var(--error);
+    margin-top: 4px;
+    display: none;
+  }
+
+  .field.has-error input,
+  .field.has-error select { border-color: var(--error); }
+  .field.has-error .upload-zone { border-color: var(--error); }
+  .field.has-error .field-error { display: block; }
+
+  .progress-wrap {
+    display: none;
+    margin-top: 10px;
+  }
+
+  .progress-wrap.visible { display: block; }
+
+  .progress-label {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 6px;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .progress-bar {
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+    transition: width 0.3s;
+    width: 0%;
+  }
+
+  .submit-btn {
+    width: 100%;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 12px;
+    cursor: pointer;
+    transition: background 0.15s, opacity 0.15s;
+    margin-top: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .submit-btn:hover:not(:disabled) { background: var(--accent-hover); }
+  .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  .spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: none;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .error-banner {
+    background: rgba(239,68,68,0.1);
+    border: 1px solid rgba(239,68,68,0.3);
+    border-radius: var(--radius);
+    color: #fca5a5;
+    font-size: 13px;
+    padding: 10px 14px;
+    margin-bottom: 1rem;
+    display: none;
+  }
+
+  .success-state {
+    display: none;
+    text-align: center;
+    padding: 2rem 0;
+  }
+
+  .success-icon {
+    width: 56px;
+    height: 56px;
+    background: rgba(16,185,129,0.1);
+    border: 1px solid rgba(16,185,129,0.3);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    margin: 0 auto 1.25rem;
+  }
+
+  .success-state h2 { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+  .success-state p { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+  .privacy {
+    font-size: 11px;
+    color: var(--muted);
+    text-align: center;
+    margin-top: 1.25rem;
+    line-height: 1.5;
+  }
+
+  .size-warning {
+    font-size: 12px;
+    color: #f59e0b;
+    margin-top: 6px;
+    display: none;
+  }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="logo">
+    <div class="logo-icon">🤖</div>
+    <div class="logo-text">Sage <span>AI</span></div>
+  </div>
+
+  <div id="form-view">
+    <h1>Document Upload</h1>
+    <p class="subtitle">Upload a contract, invoice, or agreement and our AI will extract and organise the key data automatically.</p>
+
+    <div class="error-banner" id="error-banner">Something went wrong. Please try again.</div>
+
+    <div class="field" id="field-contact_name">
+      <label>Contact Name <span class="req">*</span></label>
+      <input type="text" id="contact_name" placeholder="John Smith" autocomplete="name" />
+      <div class="field-error">Please enter your name</div>
+    </div>
+
+    <div class="field" id="field-contact_email">
+      <label>Contact Email <span class="req">*</span></label>
+      <input type="email" id="contact_email" placeholder="john@company.com" autocomplete="email" />
+      <div class="field-error">Please enter a valid email</div>
+    </div>
+
+    <div class="field" id="field-company_name">
+      <label>Company Name <span class="req">*</span></label>
+      <input type="text" id="company_name" placeholder="Acme Corp" autocomplete="organization" />
+      <div class="field-error">Please enter your company name</div>
+    </div>
+
+    <div class="field" id="field-document_type">
+      <label>Document Type <span class="req">*</span></label>
+      <select id="document_type">
+        <option value="" disabled selected></option>
+        <option>Contract</option>
+        <option>Invoice</option>
+        <option>Proposal</option>
+        <option>NDA</option>
+      </select>
+      <div class="field-error">Please select a document type</div>
+    </div>
+
+    <div class="field" id="field-pdf_file">
+      <label>PDF Document <span class="req">*</span></label>
+      <div class="upload-zone" id="upload-zone">
+        <input type="file" id="pdf_file" accept=".pdf,application/pdf" />
+        <span class="upload-icon">📄</span>
+        <div class="upload-text">
+          <strong>Click to upload</strong> or drag and drop<br>
+          PDF files only · Max 5MB
+        </div>
+      </div>
+      <div class="size-warning" id="size-warning">⚠️ File exceeds 5MB. Please upload a smaller PDF.</div>
+      <div class="file-info" id="file-info">
+        <div class="file-icon">✓</div>
+        <div class="file-details">
+          <div class="file-name" id="file-name-display"></div>
+          <div class="file-size" id="file-size-display"></div>
+        </div>
+        <button class="remove-file" onclick="removeFile()" title="Remove file">×</button>
+      </div>
+      <div class="field-error">Please upload a PDF document</div>
+      <div class="progress-wrap" id="progress-wrap">
+        <div class="progress-label"><span>Converting PDF...</span><span id="progress-pct">0%</span></div>
+        <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+      </div>
+    </div>
+
+    <button class="submit-btn" id="submit-btn" onclick="submitForm()">
+      <span id="btn-text">Analyse document →</span>
+      <div class="spinner" id="spinner"></div>
+    </button>
+
+    <p class="privacy">Your documents are processed securely and never stored permanently.</p>
+  </div>
+
+  <div class="success-state" id="success-view">
+    <div class="success-icon">✓</div>
+    <h2>Document received</h2>
+    <p>Your document is being analysed by our AI. You'll receive an email with the extracted data shortly.</p>
+  </div>
+</div>
+
+<script>
+  // ⚠️ PASTE YOUR MAKE.COM WEBHOOK URL HERE
+  const WEBHOOK_URL = "YOUR_MAKE_WEBHOOK_URL_HERE";
+
+  const MAX_SIZE_MB = 5;
+  let selectedFile = null;
+  let fileBase64 = null;
+
+  const uploadZone = document.getElementById('upload-zone');
+  const fileInput  = document.getElementById('pdf_file');
+
+  // Drag and drop
+  uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+  uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+  uploadZone.addEventListener('drop', e => {
+    e.preventDefault();
+    uploadZone.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file) handleFile(file);
+  });
+
+  fileInput.addEventListener('change', e => {
+    if (e.target.files[0]) handleFile(e.target.files[0]);
+  });
+
+  function handleFile(file) {
+    document.getElementById('size-warning').style.display = 'none';
+
+    if (!file.type.includes('pdf')) {
+      showFieldError('pdf_file', true);
+      return;
+    }
+
+    if (file.size > MAX_SIZE_MB * 1024 * 1024) {
+      document.getElementById('size-warning').style.display = 'block';
+      return;
+    }
+
+    selectedFile = file;
+    showFieldError('pdf_file', false);
+
+    // Show file info
+    document.getElementById('file-name-display').textContent = file.name;
+    document.getElementById('file-size-display').textContent = formatBytes(file.size);
+    document.getElementById('file-info').classList.add('visible');
+    uploadZone.classList.add('has-file');
+
+    // Convert to base64 with progress indication
+    const progress = document.getElementById('progress-wrap');
+    const fill     = document.getElementById('progress-fill');
+    const pct      = document.getElementById('progress-pct');
+    progress.classList.add('visible');
+
+    const reader = new FileReader();
+
+    reader.onprogress = e => {
+      if (e.lengthComputable) {
+        const p = Math.round((e.loaded / e.total) * 100);
+        fill.style.width = p + '%';
+        pct.textContent  = p + '%';
+      }
+    };
+
+    reader.onload = e => {
+      fill.style.width  = '100%';
+      pct.textContent   = '100%';
+      fileBase64 = e.target.result.split(',')[1];
+      setTimeout(() => progress.classList.remove('visible'), 800);
+    };
+
+    reader.onerror = () => {
+      progress.classList.remove('visible');
+      document.getElementById('error-banner').style.display = 'block';
+    };
+
+    reader.readAsDataURL(file);
+  }
+
+  function removeFile() {
+    selectedFile = null;
+    fileBase64   = null;
+    fileInput.value = '';
+    document.getElementById('file-info').classList.remove('visible');
+    document.getElementById('progress-wrap').classList.remove('visible');
+    uploadZone.classList.remove('has-file');
+    document.getElementById('size-warning').style.display = 'none';
+  }
+
+  function formatBytes(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  }
+
+  async function submitForm() {
+    clearErrors();
+
+    const contact_name   = document.getElementById('contact_name').value.trim();
+    const contact_email  = document.getElementById('contact_email').value.trim();
+    const company_name   = document.getElementById('company_name').value.trim();
+    const document_type  = document.getElementById('document_type').value;
+
+    let hasError = false;
+    if (!contact_name)  { showFieldError('contact_name', true);  hasError = true; }
+    if (!contact_email || !contact_email.includes('@')) { showFieldError('contact_email', true); hasError = true; }
+    if (!company_name)  { showFieldError('company_name', true);  hasError = true; }
+    if (!document_type) { showFieldError('document_type', true); hasError = true; }
+    if (!fileBase64)    { showFieldError('pdf_file', true);      hasError = true; }
+    if (hasError) return;
+
+    // Loading state
+    const btn     = document.getElementById('submit-btn');
+    const btnText = document.getElementById('btn-text');
+    const spinner = document.getElementById('spinner');
+    btn.disabled       = true;
+    btnText.textContent = 'Uploading...';
+    spinner.style.display = 'block';
+
+    try {
+      await fetch(WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contact_name,
+          contact_email,
+          company_name,
+          document_type,
+          file_name:   selectedFile.name,
+          file_base64: fileBase64
+        })
+      });
+
+      document.getElementById('form-view').style.display = 'none';
+      document.getElementById('success-view').style.display = 'block';
+
+    } catch (err) {
+      document.getElementById('error-banner').style.display = 'block';
+      btn.disabled          = false;
+      btnText.textContent   = 'Analyse document →';
+      spinner.style.display = 'none';
+    }
+  }
+
+  function showFieldError(id, show) {
+    const f = document.getElementById('field-' + id);
+    if (f) f.classList.toggle('has-error', show);
+  }
+
+  function clearErrors() {
+    document.querySelectorAll('.field').forEach(f => f.classList.remove('has-error'));
+    document.getElementById('error-banner').style.display = 'none';
+  }
+</script>
+</body>
+</html>
